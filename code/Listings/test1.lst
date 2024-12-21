@@ -1,0 +1,222 @@
+C51 COMPILER V9.60.7.0   TEST1                                                             11/16/2024 22:11:19 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE TEST1
+OBJECT MODULE PLACED IN .\Objects\test1.obj
+COMPILER INVOKED BY: D:\programm\mikroC\C51\BIN\C51.EXE test1.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\test1.lst) TABS(2) OBJECT(.\Objects\test1.obj)
+
+line level    source
+
+   1          #include <89c51rd2.H>
+   2          #include<stdio.h>
+   3          #include<math.h>
+   4          //Variables
+   5          #define dt   P1 //data line LCD
+   6          #define RS   P2_7 // mode comand/data LCD
+   7          #define RW   P2_6 // mode read/write LCD
+   8          #define EN   P2_5 // sync 
+   9          #define b1   P0_1 // reset
+  10          #define b2   P0_2 // start/stop 
+  11          int ms; 
+  12          int sec; 
+  13          int min; 
+  14          int x; // display update
+  15          
+  16          void timeInterrupt (void) interrupt 5 // Timer interrupt
+  17          {
+  18   1          x = 1;
+  19   1          TF2 = 0;
+  20   1          TH2 = 0xD8;  // Flag values required for 0.01 second: 2^16-(0.01*10^6) = D8EF (55535)
+  21   1          TL2 = 0xEF;
+  22   1          ms++;
+  23   1          if (ms > 99)
+  24   1          {
+  25   2              ms = 0;
+  26   2              sec++;
+  27   2              if (sec > 59)
+  28   2              {
+  29   3                  sec = 0;
+  30   3                  min++;
+  31   3                  if (min > 59)
+  32   3                  {
+  33   4                      min = 0;
+  34   4                      
+  35   4                  }
+  36   3              }
+  37   2          }
+  38   1      }
+  39          
+  40          void delay (long int time) // Delay function for LCD
+  41          {
+  42   1          long int i;
+  43   1          for (i = 1; i <= time; i++)
+  44   1          {;}
+  45   1      }
+  46          
+  47          void sendComand (int Comand) // Command function for LCD
+  48          {
+  49   1          RS = 0;
+  50   1          RW = 0;
+  51   1          EN = 1;
+  52   1          dt = Comand;
+  53   1          EN = 0;
+  54   1          delay(1);
+C51 COMPILER V9.60.7.0   TEST1                                                             11/16/2024 22:11:19 PAGE 2   
+
+  55   1      }
+  56          
+  57          void sendData (char s_data[], long int speed) // Function to write char s_data
+  58          {
+  59   1          int i = 0;
+  60   1          while (s_data[i] != 0)
+  61   1          {
+  62   2              RS = 1;
+  63   2              RW = 0;
+  64   2              EN = 1;
+  65   2              dt = s_data[i];
+  66   2              EN = 0;
+  67   2              i++;
+  68   2              delay(speed);
+  69   2          }
+  70   1      }
+  71          
+  72          void sendInteger (int integer, long int speed) // Function to write integer s_data
+  73          {
+  74   1          RS = 1;
+  75   1          RW = 0;
+  76   1          EN = 1;
+  77   1          dt = integer;
+  78   1          EN = 0;
+  79   1          delay(speed);
+  80   1      }
+  81          
+  82          int findRemainder (int a, int b) // Function to find the remainder
+  83          {
+  84   1          int c;
+  85   1          while (a >= b)
+  86   1          {
+  87   2              a = a - b;
+  88   2          }
+  89   1          c = a;
+  90   1          return (c);
+  91   1      }
+  92          
+  93          void lcd(void) // Initial LCD settings
+  94          {
+  95   1          int initCommands[] = {12, 56, 6}, t;
+  96   1          for (t = 0; t < 2; t++) sendComand(initCommands[t]);
+  97   1      }
+  98          
+  99          void displayLCD(void) // Values are displayed on the LCD
+ 100          {
+ 101   1          int a, b, d;
+ 102   1          sendComand(2);
+ 103   1          
+ 104   1      
+ 105   1         
+ 106   1      
+ 107   1          a = findRemainder(min, 10);
+ 108   1          d = min - a;
+ 109   1          b = d / 10;
+ 110   1          sendData(" ", 1);
+ 111   1          sendInteger(b + 48, 1);
+ 112   1          sendInteger(a + 48, 1);
+ 113   1      
+ 114   1          a = findRemainder(sec, 10);
+ 115   1          d = sec - a;
+ 116   1          b = d / 10;
+C51 COMPILER V9.60.7.0   TEST1                                                             11/16/2024 22:11:19 PAGE 3   
+
+ 117   1          sendData(":", 1);
+ 118   1          sendInteger(b + 48, 1);
+ 119   1          sendInteger(a + 48, 1);
+ 120   1      
+ 121   1          a = findRemainder(ms, 10);
+ 122   1          d = ms - a;
+ 123   1          b = d / 10;
+ 124   1          sendData(":", 1);
+ 125   1          sendInteger(b + 48, 1);
+ 126   1          sendInteger(a + 48, 1);
+ 127   1      }
+ 128          
+ 129          void main (void)
+ 130          {
+ 131   1          int e, i;
+ 132   1          i = 0;
+ 133   1          e = 1;
+ 134   1         
+ 135   1          lcd();
+ 136   1          sendComand(1);
+ 137   1          T2CON = 0x80;
+ 138   1          ET2 = 1; // Enable timer interrupt
+ 139   1          TR2 = 0;
+ 140   1          EA = 1;
+ 141   1        
+ 142   1          min = 0;
+ 143   1          sec = 0;
+ 144   1          ms = 0;
+ 145   1          TH2 = 0xD8;
+ 146   1          TL2 = 0xEF;
+ 147   1          while (1)
+ 148   1          {
+ 149   2              if (e == 1)
+ 150   2              {
+ 151   3                  while (x)
+ 152   3                  {
+ 153   4                      displayLCD();
+ 154   4                      x = 0; // To update the screen after interrupt
+ 155   4                  }
+ 156   3              }
+ 157   2              while (b1) // Check if button 1 is pressed (reset)
+ 158   2              {
+ 159   3                
+ 160   3                  min = 0;
+ 161   3                  sec = 0;
+ 162   3                  ms = 0;
+ 163   3                  TR2 = 0;
+ 164   3                  i = 0; // To understand the last pressed key
+ 165   3                  sendComand(192);
+ 166   3                  sendData("   COUNTER RESET", 1);
+ 167   3                  displayLCD();
+ 168   3                  while (b1) {}
+ 169   3              }
+ 170   2              while (b2) // Check if button 3 is pressed (start/stop)
+ 171   2              {
+ 172   3                  if (i == 0)
+ 173   3                  {
+ 174   4                      TR2 = 1;
+ 175   4                      e = 1;
+ 176   4                      i = 1;
+ 177   4                      sendComand(192); // Start of the second line
+ 178   4                      sendData("COUNTING STARTED", 1);
+C51 COMPILER V9.60.7.0   TEST1                                                             11/16/2024 22:11:19 PAGE 4   
+
+ 179   4                  }
+ 180   3                  else
+ 181   3                  {
+ 182   4                      TR2 = 0;
+ 183   4                      e = 0;
+ 184   4                      i = 0;
+ 185   4                      sendComand(192);
+ 186   4                      sendData("COUNTING STOPPED", 1);
+ 187   4                  }
+ 188   3                  while (b2) {}
+ 189   3              }
+ 190   2              
+ 191   2          }
+ 192   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    724    ----
+   CONSTANT SIZE    =     61    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      8      39
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
